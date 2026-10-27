@@ -2,6 +2,12 @@
 
 Resources for creating a custom Debian image which applies a preseed config.
 
+## Useful Documentation
+
+- [Automating the installation using preseeding](https://www.debian.org/releases/stable/riscv64/apb.en.html)
+- [Contents of the preconfiguration file](https://www.debian.org/releases/stable/amd64/apbs04.en.html)
+- [Using the Debian Installer](https://www.debian.org/releases/stable/amd64/ch06.en.html)
+
 ## Steps
 
 1. Run `preseed-initrds` to create new initrds
