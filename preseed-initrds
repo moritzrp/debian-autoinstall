@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Creates new install.amd/initrd.gz and inistall.amd/gtk/initrd.gz with preseed.cfg in `out` directory
+# Can be added when building custom image
+
+set -euo pipefail
+
+iso=debian-13.2.0-amd64-netinst.iso
+out=out
+targets=(install.amd/initrd.gz install.amd/gtk/initrd.gz)
+
+[ -f preseed.cfg ] || {
+  echo "preseed.cfg not found" >&2
+  exit 1
+}
+[ -f "$iso" ] || {
+  echo "$iso not found" >&2
+  exit 1
+}
+
+mnt=$(mktemp -d)
+work=$(mktemp -d)
+cleanup() {
+  if mountpoint -q "$mnt"; then sudo umount "$mnt"; fi
+  rmdir "$mnt"
+  rm -rf "$work"
+}
+trap cleanup EXIT
+
+sudo mount -o loop,ro "$iso" "$mnt"
+
+rm -rf "$out"
+
+for t in "${targets[@]}"; do
+  mkdir -p "$out/$(dirname "$t")"
+  gzip -dc "$mnt/$t" >"$work/initrd.cpio"
+
+  cp preseed.cfg "$work/preseed.cfg"
+  chmod 644 "$work/preseed.cfg"
+  (cd "$work" && echo preseed.cfg | cpio -o -H newc -A -F initrd.cpio --owner=root:root --quiet)
+
+  gzip -9 -c "$work/initrd.cpio" >"$out/$t"
+  rm -f "$work/initrd.cpio"
+  echo "$t: $(gzip -dc "$out/$t" | cpio -t 2>/dev/null | wc -l) entries"
+done
+
+echo
+for t in "${targets[@]}"; do
+  echo "-map $out/$t /$t"
+done
